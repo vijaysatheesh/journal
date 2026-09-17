@@ -62,14 +62,13 @@ Below is a hello world code.
 #include <linux/module.h>
 MODULE_LICESE("GPL");  // Specify license
 
-static int my_module_init(void){
+static int __init my_module_init(void){
     printk(KERN_ALERT "Module is inited\n");
     return 0;
 }
 
-static int my_module_exit(void){
+static void __exit my_module_exit(void){
     printk(KERN_ALERT "Module is exited\n");
-    return 0;
 }
 
 module_init(my_module_init);
@@ -77,6 +76,8 @@ module_exit(my_module_exit);
 
 ```
 Here printk is a function provided by module.h to print something in kernel logs. KERN_ALERT is a macro which defines the kernel's prefix for logging and priority.
+
+```__init``` and ```__exit``` tags are used to notify the kernel that these functions are only used at the initialization and cleanup time. So the function will not be loaded full time.
 
 When we are coding inside the kernel space there is no Standard C library support. Even if we can include them, It will not be linked from the kernel. Beware of that. Also the errors in kernel modules are much severe than in application code. It might kill you.
 
@@ -105,3 +106,32 @@ obj-$(CONFIG_NAMEHERE)      += modulename.o
 This ```CONFIG_NAMEHERE``` variable will be set by the Kconfig program. and if that valye is 'm', make will interpret this as ```obj-m  += modulename.o``` and build it as a module. If it is 'y' it will be built as a built-in driver and if it is 'n' it will be ignored and not built.
 
 After building, the kernels build system will automatically add it to the kernel image.
+
+### Things provided in ```module.h```
+
+|||
+|:--|--:|
+|MODULE_LICENSE | Used to specify code license|
+|MODULE_AUTHOR |Specify the module author|
+|MODULE_DESCRIPTION| Describe about the module|
+|MODULE_VERSION| Current version of the module|
+|MODULE_ALIAS| Another name the module known by|
+|MODULE_DEVICE_TABLE| Tell the kernel which devices the module supports|
+
+These declarations can appear anywhere in the code outside a function.
+
+### Registering utilities
+In the initialization function, the module should ask for all the needed resources including memory,cpu and other resources from the kernel and register the interfaces described before. This is the driver's buissness. Also in the exit function, the driver should return all the resources and unregister interfaces like a good boy.
+
+### Passing arguments into modules loading
+while using ```insmod``` or ```modprobe``` we can load arguments with them. ```moduleparam.h``` provides the functionality for registering parameters. We can use ```module_param``` macro for that.
+```c
+static char * name = "Vijay";
+static int times = 10;
+module_param(name,charp,S_IRUGO);
+module_param(times,int,S_IRUGO);
+```
+If no value is given while loading, The variables will be initialized normally. But we can provide value to the variables.
+```bash
+sudo insmod mymod.ko name=Satheesh times=5
+```
