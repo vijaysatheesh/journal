@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Notes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📓</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><a href="./">📓 <span id="brandTitle">My Notes</span></a></div>
+  <button class="icon-btn" id="themeToggle" title="Toggle theme">🌓</button>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1 id="pageTitle">My Notes</h1>
+    <p id="pageTagline">A personal notebook, organized automatically.</p>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search notes by title, tag, or text…" autocomplete="off" />
+  </div>
+
+  <div class="meta-row">
+    <span id="countLabel"></span>
+    <span id="folderLabel"></span>
+  </div>
+
+  <div class="note-list" id="noteList">
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+  </div>
+</div>
+
+<footer class="site-footer">Built with QuickNotes · Markdown in, beautiful pages out.</footer>
+
+<script src="assets/config.js"></script>
+<script>
+(function () {
+  const cfg = window.SITE_CONFIG || {};
+  document.getElementById('brandTitle').textContent = cfg.siteTitle || 'My Notes';
+  document.getElementById('pageTitle').textContent = cfg.siteTitle || 'My Notes';
+  document.getElementById('pageTagline').textContent = cfg.siteTagline || '';
+  document.title = cfg.siteTitle || 'My Notes';
+
+  // ---- theme toggle ----
+  const root = document.documentElement;
+  const saved = localStorage.getItem('qn-theme');
+  if (saved) root.classList.add(saved);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const isDark = root.classList.contains('dark') ||
+      (!root.classList.contains('light') && matchMedia('(prefers-color-scheme: dark)').matches);
+    root.classList.remove('light', 'dark');
+    const next = isDark ? 'light' : 'dark';
+    root.classList.add(next);
+    localStorage.setItem('qn-theme', next);
+  });
+
+  const listEl = document.getElementById('noteList');
+  const countEl = document.getElementById('countLabel');
+  const folderEl = document.getElementById('folderLabel');
+  const searchEl = document.getElementById('searchInput');
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Very small YAML-frontmatter reader: only pulls simple `key: value` lines.
+  function parseFrontmatter(text) {
+    const fm = { title: null, date: null, tags: [] };
+    let body = text;
+    if (text.startsWith('---')) {
+      const end = text.indexOf('\n---', 3);
+      if (end !== -1) {
+        const block = text.slice(3, end).trim();
+        body = text.slice(end + 4).replace(/^\s*\n/, '');
+        block.split('\n').forEach(line => {
+          const m = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+          if (!m) return;
+          const key = m[1].toLowerCase();
+          let val = m[2].trim().replace(/^["']|["']$/g, '');
+          if (key === 'title') fm.title = val;
+          else if (key === 'date') fm.date = val;
+          else if (key === 'tags') {
+            if (val.startsWith('[')) {
+              fm.tags = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+            } else if (val) {
+              fm.tags = [val];
+            }
+          }
+        });
+      }
+    }
+    return { fm, body };
+  }
+
+  function titleFromFilename(name) {
+    return name.replace(/\.md$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function deriveTitleAndExcerpt(text, filename) {
+    const { fm, body } = parseFrontmatter(text);
+    let title = fm.title;
+    if (!title) {
+      const h1 = body.match(/^\s*#\s+(.+)$/m);
+      if (h1) title = h1[1].trim();
+    }
+    if (!title) title = titleFromFilename(filename);
+
+    let excerptSource = body.replace(/^\s*#.*$/m, '');
+    excerptSource = excerptSource
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/[#>*_`~-]/g, ' ')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const excerpt = excerptSource.slice(0, 160);
+
+    return { title, excerpt, date: fm.date, tags: fm.tags || [] };
+  }
+
+  async function loadNotes() {
+    const info = resolveRepoInfo();
+    const folder = cfg.notesFolder || 'notes';
+    folderEl.textContent = '/' + folder + '/';
+
+    if (!info.owner || !info.repo) {
+      renderError(
+        `Couldn't work out your GitHub username/repo from this URL. ` +
+        `If you're using a custom domain, open <code>assets/config.js</code> and set ` +
+        `<code>owner</code> and <code>repo</code> manually.`
+      );
+      return;
+    }
+
+    const apiUrl = `https://api.github.com/repos/${info.owner}/${info.repo}/contents/${encodeURIComponent(folder)}?ref=${encodeURIComponent(info.branch)}`;
+
+    let entries;
+    try {
+      const res = await fetch(apiUrl, { headers: { Accept: 'application/vnd.github+json' } });
+      if (res.status === 404) {
+        renderError(`No <code>${folder}/</code> folder found yet in <code>${info.owner}/${info.repo}</code>. Add some <code>.md</code> files there and push — this page updates automatically.`);
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        renderError(`GitHub API error (${res.status}): ${escapeHtml(body.message || res.statusText)}. If you've hit the unauthenticated rate limit, wait a bit and refresh.`);
+        return;
+      }
+      entries = await res.json();
+    } catch (e) {
+      renderError(`Couldn't reach the GitHub API (network error). Check your connection and try again.`);
+      return;
+    }
+
+    const mdFiles = (Array.isArray(entries) ? entries : [])
+      .filter(e => e.type === 'file' && /\.md$/i.test(e.name));
+
+    if (mdFiles.length === 0) {
+      renderError(`No Markdown files in <code>${folder}/</code> yet. Drop a <code>.md</code> file in there and push to see it here.`);
+      return;
+    }
+
+    const notes = await Promise.all(mdFiles.map(async (file) => {
+      const path = `${folder}/${file.name}`;
+      let text = '';
+      try {
+        const r = await fetch(path, { cache: 'no-store' });
+        if (r.ok) text = await r.text();
+      } catch (e) { /* ignore, fall back to filename title */ }
+      const meta = deriveTitleAndExcerpt(text, file.name);
+      return { path, filename: file.name, ...meta };
+    }));
+
+    notes.sort((a, b) => {
+      if (a.date && b.date) return b.date.localeCompare(a.date);
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return a.title.localeCompare(b.title);
+    });
+
+    renderList(notes);
+  }
+
+  function renderError(html) {
+    listEl.innerHTML = `<div class="state-msg error">${html}</div>`;
+    countEl.textContent = '';
+  }
+
+  let allNotes = [];
+
+  function renderList(notes) {
+    allNotes = notes;
+    countEl.textContent = `${notes.length} note${notes.length === 1 ? '' : 's'}`;
+    paint(notes);
+  }
+
+  function paint(notes) {
+    if (notes.length === 0) {
+      listEl.innerHTML = `<div class="state-msg">No notes match your search.</div>`;
+      return;
+    }
+    listEl.innerHTML = notes.map(n => `
+      <a class="note-card" href="viewer.html?file=${encodeURIComponent(n.path)}">
+        <p class="title">${escapeHtml(n.title)}</p>
+        ${n.excerpt ? `<p class="excerpt">${escapeHtml(n.excerpt)}</p>` : ''}
+        <div class="tags">
+          ${(n.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+          ${n.date ? `<span class="filename">${escapeHtml(n.date)}</span>` : ''}
+        </div>
+      </a>
+    `).join('');
+  }
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) { paint(allNotes); return; }
+    const filtered = allNotes.filter(n =>
+      n.title.toLowerCase().includes(q) ||
+      n.excerpt.toLowerCase().includes(q) ||
+      (n.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+    paint(filtered);
+  });
+
+  loadNotes();
+})();
+</script>
+</body>
+</html>

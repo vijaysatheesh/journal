@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Note</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📓</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><a href="./">📓 <span id="brandTitle">My Notes</span></a></div>
+  <button class="icon-btn" id="themeToggle" title="Toggle theme">🌓</button>
+</div>
+
+<div class="viewer-wrap">
+  <a class="back-link" href="./">&larr; Back to all notes</a>
+  <div id="content">
+    <div class="skeleton" style="height:36px; margin-bottom:16px;"></div>
+    <div class="skeleton" style="height:200px;"></div>
+  </div>
+</div>
+
+<footer class="site-footer">Built with QuickNotes · Markdown in, beautiful pages out.</footer>
+
+<script src="assets/config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function () {
+  const cfg = window.SITE_CONFIG || {};
+  document.getElementById('brandTitle').textContent = cfg.siteTitle || 'My Notes';
+
+  const root = document.documentElement;
+  const saved = localStorage.getItem('qn-theme');
+  if (saved) root.classList.add(saved);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const isDark = root.classList.contains('dark') ||
+      (!root.classList.contains('light') && matchMedia('(prefers-color-scheme: dark)').matches);
+    root.classList.remove('light', 'dark');
+    const next = isDark ? 'light' : 'dark';
+    root.classList.add(next);
+    localStorage.setItem('qn-theme', next);
+  });
+
+  const contentEl = document.getElementById('content');
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function parseFrontmatter(text) {
+    const fm = { title: null, date: null, tags: [] };
+    let body = text;
+    if (text.startsWith('---')) {
+      const end = text.indexOf('\n---', 3);
+      if (end !== -1) {
+        const block = text.slice(3, end).trim();
+        body = text.slice(end + 4).replace(/^\s*\n/, '');
+        block.split('\n').forEach(line => {
+          const m = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+          if (!m) return;
+          const key = m[1].toLowerCase();
+          let val = m[2].trim().replace(/^["']|["']$/g, '');
+          if (key === 'title') fm.title = val;
+          else if (key === 'date') fm.date = val;
+          else if (key === 'tags') {
+            if (val.startsWith('[')) {
+              fm.tags = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+            } else if (val) {
+              fm.tags = [val];
+            }
+          }
+        });
+      }
+    }
+    return { fm, body };
+  }
+
+  function titleFromFilename(name) {
+    return name.replace(/\.md$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  async function loadNote() {
+    const params = new URLSearchParams(location.search);
+    const file = params.get('file');
+    if (!file) {
+      contentEl.innerHTML = `<div class="state-msg error">No file specified. Go <a href="./">back to your notes</a>.</div>`;
+      return;
+    }
+
+    let text;
+    try {
+      const res = await fetch(file, { cache: 'no-store' });
+      if (!res.ok) throw new Error(res.statusText);
+      text = await res.text();
+    } catch (e) {
+      contentEl.innerHTML = `<div class="state-msg error">Couldn't load <code>${escapeHtml(file)}</code>. Make sure it was pushed to the repo. <a href="./">Back to all notes</a></div>`;
+      return;
+    }
+
+    const { fm, body } = parseFrontmatter(text);
+    const filename = file.split('/').pop();
+    let title = fm.title;
+    let bodyForRender = body;
+    if (!title) {
+      const h1 = body.match(/^\s*#\s+(.+)$/m);
+      if (h1) {
+        title = h1[1].trim();
+        bodyForRender = body.replace(/^\s*#\s+.+$/m, '');
+      }
+    }
+    if (!title) title = titleFromFilename(filename);
+
+    document.title = title + ' · ' + (cfg.siteTitle || 'My Notes');
+
+    marked.setOptions({
+      gfm: true,
+      breaks: false,
+      highlight: null,
+    });
+    const rawHtml = marked.parse(bodyForRender);
+    const cleanHtml = window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+
+    const metaBits = [];
+    if (fm.date) metaBits.push(`<span>${escapeHtml(fm.date)}</span>`);
+    (fm.tags || []).forEach(t => metaBits.push(`<span class="tag">${escapeHtml(t)}</span>`));
+    metaBits.push(`<span class="filename" style="font-family:var(--mono);">${escapeHtml(filename)}</span>`);
+
+    contentEl.innerHTML = `
+      <div class="doc-header">
+        <h1>${escapeHtml(title)}</h1>
+        <div class="doc-meta">${metaBits.join('')}</div>
+      </div>
+      <article class="markdown-body">${cleanHtml}</article>
+    `;
+
+    if (window.hljs) {
+      contentEl.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    }
+  }
+
+  loadNote();
+})();
+</script>
+</body>
+</html>
