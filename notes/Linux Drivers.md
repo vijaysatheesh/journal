@@ -9,3 +9,4 @@ tags: [linux,drivers]
 This is a text
 ## Block drivers
 This is another test
+![Sample image](1375175.jpg)
