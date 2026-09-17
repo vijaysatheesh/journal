@@ -340,6 +340,30 @@ a:hover { text-decoration: underline; }
   max-width: 100%;
   border-radius: 10px;
   margin: 1em 0;
+  transition: opacity 0.15s ease;
+}
+.markdown-body img:hover {
+  opacity: 0.92;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 9, 7, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: zoom-out;
+  padding: 32px;
+  animation: fadein 0.12s ease;
+}
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+.lightbox-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
 .markdown-body hr {
   border: none;

@@ -71,6 +71,30 @@ Body of the note...
 If neither is present, the filename becomes the title (e.g. `my-great-idea.md`
 → "My Great Idea").
 
+## Images
+
+Just reference images with normal Markdown syntax:
+
+```markdown
+![A screenshot](images/screenshot.png)
+```
+
+Relative paths are resolved against **the note's own folder**, not the site
+root, so this works cleanly:
+
+```
+notes/
+  my-note.md
+  images/
+    screenshot.png       ← used as ![...](images/screenshot.png)
+  another-note/
+    another-note.md
+    cover.jpg             ← used as ![...](cover.jpg)
+```
+
+Absolute URLs (`https://...`) work too. Click any image in a note to view it
+full-size in a lightbox; press Esc or click anywhere to close it.
+
 ## Notes on how it works
 
 - `index.html` calls the GitHub Contents API to list files in `notes/`,

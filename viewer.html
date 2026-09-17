@@ -121,13 +121,40 @@
 
     document.title = title + ' · ' + (cfg.siteTitle || 'My Notes');
 
+    // Resolve relative image/link paths (e.g. "images/pic.png") against the
+    // note's own folder, not the site root — so images sitting next to your
+    // .md file just work.
+    const noteDir = file.substring(0, file.lastIndexOf('/') + 1);
+    function resolveAssetUrl(url) {
+      if (!url) return url;
+      if (/^([a-z][a-z0-9+.-]*:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('#') || url.startsWith('/')) {
+        return url;
+      }
+      try {
+        return new URL(noteDir + url, window.location.href).href;
+      } catch (e) {
+        return url;
+      }
+    }
+
+    const renderer = new marked.Renderer();
+    renderer.image = (href, title, text) => {
+      const src = resolveAssetUrl(href);
+      return `<img src="${src}" alt="${escapeHtml(text || '')}"${title ? ` title="${escapeHtml(title)}"` : ''} loading="lazy">`;
+    };
+    renderer.link = (href, title, text) => {
+      const url = resolveAssetUrl(href);
+      const external = /^([a-z][a-z0-9+.-]*:)?\/\//i.test(href || '') && !href.startsWith(location.origin);
+      return `<a href="${url}"${title ? ` title="${escapeHtml(title)}"` : ''}${external ? ' target="_blank" rel="noopener"' : ''}>${text}</a>`;
+    };
+
     marked.setOptions({
       gfm: true,
       breaks: false,
-      highlight: null,
+      renderer,
     });
     const rawHtml = marked.parse(bodyForRender);
-    const cleanHtml = window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+    const cleanHtml = window.DOMPurify ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target', 'loading'] }) : rawHtml;
 
     const metaBits = [];
     if (fm.date) metaBits.push(`<span>${escapeHtml(fm.date)}</span>`);
@@ -145,6 +172,23 @@
     if (window.hljs) {
       contentEl.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
     }
+
+    // Click any note image to view it full-size in a lightbox.
+    contentEl.querySelectorAll('.markdown-body img').forEach(img => {
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', () => openLightbox(img.src, img.alt));
+    });
+  }
+
+  function openLightbox(src, alt) {
+    const overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    overlay.innerHTML = `<img src="${src}" alt="${escapeHtml(alt || '')}">`;
+    overlay.addEventListener('click', () => overlay.remove());
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', onKey); }
+    });
+    document.body.appendChild(overlay);
   }
 
   loadNote();

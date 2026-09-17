@@ -55,4 +55,18 @@ function hello() {
 - [x] Write a sample note
 - [ ] Write your own
 
+## Images
+
+Put images anywhere in the repo and reference them with a normal Markdown
+image tag — relative paths are resolved against the note's own location, so
+this works whether the image sits next to the note or in a shared folder:
+
+```markdown
+![A screenshot](images/screenshot.png)
+```
+
+A common layout is `notes/images/` for shared images, or a per-note folder
+like `notes/my-note/cover.png`. Click any image in a note to view it full
+size.
+
 Happy note-taking!
