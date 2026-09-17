@@ -81,3 +81,27 @@ Here printk is a function provided by module.h to print something in kernel logs
 When we are coding inside the kernel space there is no Standard C library support. Even if we can include them, It will not be linked from the kernel. Beware of that. Also the errors in kernel modules are much severe than in application code. It might kill you.
 
 Also unlike the stack of user space programs, kernel space have a very less stack size. So reduce the budget of memory. If you need more memory, dynamically allocate them.
+
+### Compiling a module
+The GNU extended make provides the utils for building a module. we just have to mention the object file to an ```obj-m``` variable.
+
+```Makefile
+obj-m := mymod.o
+```
+if you have multiple module under construction,
+```Makefile
+obj-m := mymod1.o
+obj-m += mymod2.o
+```
+If you are building for the system you were right in, just call ```make``` 
+
+### Building for another device right from the kernel source
+If you look at the ```drivers/``` folder in the kernel source, all device drivers are categorised in this folder. For our current simple driver get inside the ```misc/``` folder. Here you can see a lot of ```.c,.o,.ko``` files which are part of various modules. We can copy our C file here for the module.
+
+When we look at the Makfile in that directory we can see something in the format of this
+```Makefile
+obj-$(CONFIG_NAMEHERE)      += modulename.o
+```
+This ```CONFIG_NAMEHERE``` variable will be set by the Kconfig program. and if that valye is 'm', make will interpret this as ```obj-m  += modulename.o``` and build it as a module. If it is 'y' it will be built as a built-in driver and if it is 'n' it will be ignored and not built.
+
+After building, the kernels build system will automatically add it to the kernel image.
