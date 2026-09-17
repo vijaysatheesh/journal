@@ -131,7 +131,19 @@ static int times = 10;
 module_param(name,charp,S_IRUGO);
 module_param(times,int,S_IRUGO);
 ```
-If no value is given while loading, The variables will be initialized normally. But we can provide value to the variables.
+If no value is given while loading, The variables will be initialized normally. But we can provide value to the variables. Modules also support array parameters seperated by commas.
 ```bash
 sudo insmod mymod.ko name=Satheesh times=5
 ```
+The supported datatypes are:
+- bool
+- invbool
+- charp
+- int
+- long
+- short
+- uint
+- ushort
+- ulong
+
+Hint: S_IRUGO is a permission modifier. will be discussed later. Ippo athra kanda mathi. kooduthal kostyans venda.  
