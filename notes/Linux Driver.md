@@ -363,4 +363,15 @@ This method is invoked when an application uses fcntl to request directory
 change notifications. It is useful only to filesystems; drivers need not implement
 dir_notify.
 
-This is a huge list. We dont want to implement all of this. but come back anytime for reference. (I copied and pasted the list lol).
+This is a huge list. We dont want to implement all of this. but come back anytime for reference. (I copied and pasted the list lol). After we define the needed functions from this list, we want to fill up the ```file_operations``` structure.
+```c
+struct file_operations mydev_fops = {
+    .owner = THIS_MODULE,
+    .llseek = mydev_llseek,
+    .read = mydev_read,
+    .write = mydev_write,
+    .ioctl = mydev_ioctl,
+    .open = mydev_open,
+    .release = mydev_release,
+};
+```
