@@ -1,7 +1,7 @@
 ---
-title : My attempt of a first linux driver
-date : 2026-09-21
-tags : [linux,driver,diy,gpio,wishmeluck]
+title: My attempt of a first linux driver
+date: 2026-09-21
+tags: [linux,driver,diy,gpio,wishmeluck]
 ---
 
 # A simple linux driver
