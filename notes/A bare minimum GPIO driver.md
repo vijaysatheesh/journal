@@ -653,4 +653,5 @@ int mem_usage() {
 }
 ```
 This will take the current memory usage, calculate it's byte to write to regster and write that to ```/dev/led```. Output will look like this.
-![Pic result](images/picresult.jpeg)
+![Pic result](images/picresult.jpeg). The full code can be found in the following repo. Please note down your comments.
+[Source code](https://github.com/vijaysatheesh/fancyleddriver.git)
