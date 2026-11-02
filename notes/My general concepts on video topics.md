@@ -1,0 +1,51 @@
+---
+title: My study about different video concepts
+date: 2026-11-02
+tags: [linux,drivers]
+---
+
+# HDMI
+HDMI is a closed standard of multimedia transmission on short distances. This is an uncompressed high bandwidth transmission protocol. A single cable can support Video upto 8k, 10 channels of audio, CEC, HDR, and Ethernet.
+
+## How ethernet works
+![hdmi-block](images/hdmi-block.jpg)
+As in figure the HDMI connection contains:
+- 4 TMDS channels. 3 for data. 1 for TMDS Clock
+- One display data channel which provides I2C based communication for transferring EDID (Extended display identification data).
+- One CEC (Consumer Electronic Control) line. More on them later.
+- One HEAC (HDMI Ethernet and Audio-return channel). This pin is also multiplexed as HPD (Hot plug detect).
+
+## TMDS Channel
+This is a channel where the 0 to 1 transitions are minimized as possible using an algorithm which converts the 8bit data into 10. This is also a differential pair signaling. It is immune to the EMIs and other disturbances.
+
+HDMI uses a serializer to make the parellel buses into serial data to be transmitted for each channel. Figure below indicates how.
+![alt text](images/tmds-channel.png)
+## Time splittings
+There are 3 time periods.
+- Video data period
+- Data island period
+- Control period
+
+### Video data period
+In this period first 2 bits are the Video guard band and sends no data. After that, one horizontal line of video is transmitted. All three channnels are used and will send the red,green and blue channels or Y,Cb,Cr channels.
+### Data island period
+This time period is used to send Audio and auxiliary data. All three channels are used.
+### Control period
+This is the period which stand in between other periods. A 6 bit contol bit is transmitted as two bits per channel
+- Channel 0:
+    - Bit 0: HSYNC
+    - Bit 1: VSYNC
+- Channel 1:
+    - Bit 2: CTL0
+    - Bit 3: CTL1
+- Channel 2:
+    - Bit 4: CTL2
+    - Bit 5: CTL3
+HSYNC and VSYNC are used to sync the horizontal lines and frames. Just like in VGAn fasion.
+This CTL0 - CTL3 bits define what the next period coming is.
+
+| CTL0 | CTL1 | CTL2 | CTL3 | period type |
+|:--|:--|:--|:--|:--|
+|1|0|0|0|Video Data period|
+|1|0|1|0|Data island period|
+
