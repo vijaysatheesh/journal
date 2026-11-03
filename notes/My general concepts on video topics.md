@@ -106,10 +106,13 @@ This is a client server communication protocol which is used to sync the time of
 - The packet will be recieved by the server at time ```t2```, it will be processed and sent back the t1 and ```t2``` time values back to the client.
 - Client will recieve the packet at time ```t3```.
 - Now, For the network delay, 
+
 $$
 Network\ delay = (Total\ time - processing\ time) / 2
 $$
+
 $$
 Network\ delay = ((t_3-t_0)-(t_2-t_1)) / 2
 $$
+
 Now it will add the network delay to the ```t3``` and set that time as client time.
