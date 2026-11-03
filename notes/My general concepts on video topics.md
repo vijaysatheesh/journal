@@ -11,7 +11,7 @@ HDMI is a closed standard of multimedia transmission on short distances. This is
 ![hdmi-block](images/hdmi-block.jpg)
 As in figure the HDMI connection contains:
 - 4 TMDS channels. 3 for data. 1 for TMDS Clock
-- One display data channel which provides I2C based communication for transferring EDID (Extended display identification data).
+- One DDC channel (display data channel) which provides I2C based communication for transferring EDID (Extended display identification data).
 - One CEC (Consumer Electronic Control) line. More on them later.
 - One HEAC (HDMI Ethernet and Audio-return channel). This pin is also multiplexed as HPD (Hot plug detect).
 
@@ -41,7 +41,7 @@ This is the period which stand in between other periods. A 6 bit contol bit is t
 - Channel 2:
     - Bit 4: CTL2
     - Bit 5: CTL3
-HSYNC and VSYNC are used to sync the horizontal lines and frames. Just like in VGAn fasion.
+HSYNC and VSYNC are used to sync the horizontal lines and frames. Just like in VGA fasion.
 This CTL0 - CTL3 bits define what the next period coming is.
 
 | CTL0 | CTL1 | CTL2 | CTL3 | period type |
@@ -49,3 +49,32 @@ This CTL0 - CTL3 bits define what the next period coming is.
 |1|0|0|0|Video Data period|
 |1|0|1|0|Data island period|
 
+# EDID
+EDID (Extended Display Identification Data) is a type of data which describes the capablities and details of a video sink. This usually stored in a ROM and the source will read it using I2C via the Display Data channel. Currently E-EDID (Enhanced EDID) is in standard. Which is 256byte long by fasion but can be extended using various extensions specified by VESA.
+
+![edid-versions](images/edid-versions.png)\
+
+This is the dataframe of an EDID block. Additional 128 byte blocks count is incremented and added as next block. No separator is required. 
+
+![edid-df](images/edid-df.png)
+
+A sample extension block can be like:
+
+![edid-ext](images/edid-ext.png)
+
+# CEC - Consumer electronic control
+This is a communication protocol designed for source-sink communication in media devices. This let the source device communicate and control the sink devices.
+
+There exist a tree structure for the CEC network. The CEC line runs through the entire network. This is an open-drain communication.
+
+One CEC frame contains 8bits of data, One end of frame bit, and ann acknowledgement but which the reciver must pull down. One Grame is below.
+
+![cec-packet](images/cec-packet.png)
+
+A header frame which have address of initiator and destination will be contained.
+
+![cec-header](images/cec-header.png)
+
+Every device in the tree will be assigned a logical address rather than it's physical based on the level it placed in the tree. A switch is requred in the in devices to split the CEC line, Even if it does'nt implement CEC control features.
+
+![cec-tree](images/cec-tree.png)
