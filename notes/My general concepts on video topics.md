@@ -96,3 +96,20 @@ AES67 is an international standard of transmiting audio over IP. This standard d
 AES67 uses the RTP protocol under UDP. This alsod defines the minimum number of samples per packet for each packet times we can acheive at 16bit resolution. AES67 uses Precision time protocol for timing of the packets.
 
 ![aes67-packettime](images/aes67-packettime.png)
+
+# Network Time Protocol
+This is a client server communication protocol which is used to sync the time of the devices upto millisecond accuracy. This protocol also incorporate the network delay.
+
+![ntp](images/ntp-packet.png)
+
+- In the figure, A Packet contains the current time ```t1``` at the client will be sent to the server.
+- The packet will be recieved by the server at time ```t2```, it will be processed and sent back the t1 and ```t2``` time values back to the client.
+- Client will recieve the packet at time ```t3```.
+- Now, For the network delay, 
+$$
+Network\ delay = (Total\ time - processing\ time) / 2
+$$
+$$
+Network\ delay = ((t_3-t_0)-(t_2-t_1)) / 2
+$$
+Now it will add the network delay to the ```t3``` and set that time as client time.
