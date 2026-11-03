@@ -116,3 +116,18 @@ Network\ delay = ((t_3-t_0)-(t_2-t_1)) / 2
 $$
 
 Now it will add the network delay to the ```t3``` and set that time as client time.
+
+# Precision Time Protocol
+This is a similiar protocol to the NTP. But it can sync upto nanoseconds. Used for highspeed streaming and communication. Instead of a client server model this uses a master slave model, where master is the one who initialize the sync request.
+
+![ptp](images/ptp.png)
+
+- Here as you can see master will sent a sync request and slave will listen for t0.
+- When t0 is recieved, slave will set that time as current time. Then proceeds to check the network delay.
+- For that slave will sent a delay request at t2 which reach the master at t3.
+- Master will then reply the delay response with t3 value.
+- Slave will use the t2 and t3 values to calculate the network delay.
+
+$$
+Network\ delay = t_3 - t_2
+$$
