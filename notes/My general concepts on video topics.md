@@ -1,7 +1,7 @@
 ---
 title: My study about different video concepts
 date: 2026-11-02
-tags: [linux,drivers]
+tags: [video,audio,HDMI]
 ---
 
 # HDMI
@@ -78,3 +78,11 @@ A header frame which have address of initiator and destination will be contained
 Every device in the tree will be assigned a logical address rather than it's physical based on the level it placed in the tree. A switch is requred in the in devices to split the CEC line, Even if it does'nt implement CEC control features.
 
 ![cec-tree](images/cec-tree.png)
+
+# HDCP
+High-bandwidth Digital Content Protection is a method of encrypting the content coming from An HDMI Encoder and Decrypt On the decoder side.
+- Each device will have a private key and publicn key embedded inside. This is aquired by subscribing from the Intel subsidiary.
+- On the connection, source will read the EDID of the sink and decide the HDCP version supported.
+- After that devices will exchange the public keys and keep the private keys. Then the source will encrypt using private and public keys and sink will decrypt them.
+- If the big boys found someone is cheating with an unauthorized device, That device's key and that entire manufactures key will be added to the revocation list (naughty list) and sent that list with later CDs and DVDs. Every source will check the revocation list before starting the stream.
+- Every pixel is encrypted with a cipher based algorithm which XORs the bits with the 24bit key that is generated from both public and private keys.
