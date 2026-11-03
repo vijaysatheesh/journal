@@ -86,3 +86,13 @@ High-bandwidth Digital Content Protection is a method of encrypting the content 
 - After that devices will exchange the public keys and keep the private keys. Then the source will encrypt using private and public keys and sink will decrypt them.
 - If the big boys found someone is cheating with an unauthorized device, That device's key and that entire manufactures key will be added to the revocation list (naughty list) and sent that list with later CDs and DVDs. Every source will check the revocation list before starting the stream.
 - Every pixel is encrypted with a cipher based algorithm which XORs the bits with the 24bit key that is generated from both public and private keys.
+
+# AES67
+AES67 is an international standard of transmiting audio over IP. This standard defines:
+- Clock syncronisation
+- Stream initialization
+- Transport of packets
+
+AES67 uses the RTP protocol under UDP. This alsod defines the minimum number of samples per packet for each packet times we can acheive at 16bit resolution. AES67 uses Precision time protocol for timing of the packets.
+
+![aes67-packettime](images/aes67-packettime.png)
