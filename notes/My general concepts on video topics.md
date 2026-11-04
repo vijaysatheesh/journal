@@ -131,3 +131,61 @@ This is a similiar protocol to the NTP. But it can sync upto nanoseconds. Used f
 $$
 Network\ delay = t_3 - t_2
 $$
+
+# USB
+USB is an asynchronous commmunication protocol which is used literally everywhere. USB uses a differential pair to communicate. with a differential pair. Below table is a primer on understanding what the combinations of these cables mean.
+
+|D+|D-|Meaning|Meaning in Fast mode|Meaning in Low speed mode|
+|:--|:--|:--|:--|:--|
+|H|L|Differential 1| J state | K state |
+|L|H|Differential 0| K state | J State |
+|H|H|Single ended 1|-|-|
+|L|L|Single ended 0| End of packet | End of packet |
+
+Note that end of frame is SE0 for 2 bit time followed by a J state 1 bit time or more.
+
+After that to start the packet A J to K transition should happen.
+## Sync bits
+In the start of a packet a set of bit pattern called a SYNC should be produced by the sender. It is KJKJKJKK.
+
+This KJKJKJKK pattern will be used by the reciever to determine the speed of the communication and recover the clock used to decode the bits.
+
+
+## The frame
+Everything comes after this is an NRZ encoded data.
+- Every transition denotes a 0.
+- No transition from previous denotes 1.
+- For longer 1s, the device can lose track of time. for that USB specifies that every 6 continuos 1s, a 0 will be stuffed. This is called bit stuffing. So whenever you see 6 consecutive 1s, just avoid the next 0 coming.
+
+So we can see a frame will look like this
+
+![usb-testframe](images/usb-testframe.png)
+
+From this we can read the bits as:
+$$
+K\ \ \ KJKKJJJK\ \ \ JKJJJKJJ\ \ \ KJKJJJKJ
+$$
+$$
+\ \ \ 10010110\ \ \ 00011001\ \ \ 00001100
+$$
+
+Now every time the first 4 bits represent whatb type of frame is coming. Can be obtained from table below. Also the next 4 bits will be the inversion of the first 4 bits. This is used for CRC.
+
+
+
+![usb-PID-table](images/usb-pid-table.png)
+
+Based on this we can see that this frame is a IN type frame. This is a type of token frame which is used for identification purpose.
+
+So the frame of that type will look like this based on the documentation.
+
+![usb-IN-frame](images/usb-in-frame.png)
+
+Here we can see the first 8 bits are we already know which defines the packet type, next 7 bits are address and 4 bits are endpoint and last is the 5 bit CRC. Note that this entries except PID should be flipped because they represent as LSB in the left most. So the above data can be decoded as:
+- 0011000 (18) - Address
+- 0001 (1) - Endpoint
+- 00110 - CRC
+
+Here address is the address of the usb device which the host like to communicate. Endpoint is like which data stream is the host intrested to recieve from the device.
+
+This is how generally a frame of USB is interpreted. This part of the document will be updated soon but currently we can use this basics to understand USB C.
